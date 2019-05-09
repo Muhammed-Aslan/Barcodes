@@ -1,37 +1,37 @@
 ﻿namespace Pdf417
 {
     /// <summary>
-    /// Натройки для формирования штрихкода PDF417
+    /// Settings to form a bar code PDF417
     /// </summary>
     public struct Settings
     {
         /// <summary>
-        /// Отношение высоты модуля PDF417 к ширине (по умолчанию 3)
+        /// The ratio of the height of the module PDF417 to the width (default 3)
         /// </summary>
         public int YHeight;
 
         /// <summary>
-        /// Ширина модуля PDF417 в пиикселях (по умолчанию 4)
+        /// PDF417 module width in pixels (default 4)
         /// </summary>
         public int ModuleWidth;
 
         /// <summary>
-        /// Уровень коррекции ошибок (по умолчанию <see cref="Pdf417.CorrectionLevel.Auto"/>)
+        /// Error Correction Level (default<see cref="Pdf417.CorrectionLevel.Auto"/>)
         /// </summary>
         public CorrectionLevel CorrectionLevel;
 
         /// <summary>
-        /// Отношение ширины штрих-кода к высоте (по умолчанию 2.2)
+        /// The ratio of the width of the bar code to the height (default 2.2)
         /// </summary>
         public double AspectRatio;
 
         /// <summary>
-        /// Ширина и высота "Тихой зоны" в пикселях (по умолчанию 8)
+        /// Width and height of the Quiet Zone in pixels (default is 8)
         /// </summary>
         public int QuietZone;
 
         /// <summary>
-        /// Настройки по умолчанию
+        /// Default settings
         /// </summary>
         public static Settings Default => new Settings
         {

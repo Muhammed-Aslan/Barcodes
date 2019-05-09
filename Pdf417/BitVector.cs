@@ -9,59 +9,59 @@ using JetBrains.Annotations;
 
 namespace Pdf417
 {
-    /// <summary>
-    /// Массив битовых значений для компактного и эффективного хранения без необходимости вычислять маски вручную
-    /// </summary>
-    /// <remarks>
-    /// Упрощенный (и оптимизированный под 64-бит) аналог стандартного класса <see cref="System.Collections.BitArray"/>
-    ///
-    /// В отличие от стандартной реализации не поддерживает динамическое изменение размера хранения
-    ///
-    /// Внутреннее представление для хранения значений: массив ulong, поэтому все значения выравниваются исходя из этого
-    ///
-    /// NOTE: Валидация попадания в заданный исходный диапазон значений (0 .. length) не производится для ускорения операций,
-    /// поэтому возможно пограничное некорректное обращение к несуществующему индексу
-    ///
-    /// Например, при длине 2 бит, обращение к битам 2..63 так же будет считаться валидным, как и к 0..1
-    /// Ошибка (выход за пределы диапазона) в данном случае будет выдана только при обращении к битам c номером больше 64
-    ///
-    /// Для текущего применения данная особенность некритична
-    ///
-    /// (c) Nikolay Martyshchenko
+/// <summary>
+    /// Array of bit values ​​for compact and efficient storage without having to calculate masks manually
+    /// </summary>
+    /// <remarks>
+    /// Simplified (and optimized for 64-bit) analogue of the standard class <see cref = "System.Collections.BitArray" />
+    ///
+    /// Unlike the standard implementation, it does not support dynamic storage resizing.
+    ///
+    /// Internal view for storing values: an ulong array, so all values ​​are aligned based on this
+    ///
+    /// NOTE: Validation of hitting a given initial range of values ​​(0 .. length) is not performed to speed up operations,
+    /// therefore possible boundary incorrect access to a non-existent index
+    ///
+    /// For example, with a length of 2 bits, access to bits 2..63 will also be considered valid, as well as to 0..1
+    /// Error (out of range) in this case will be issued only when accessing bits with a number greater than 64
+    ///
+    /// For current use, this feature is not critical.
+    ///
+    /// (c) Nikolay Martyshchenko
     /// </remarks>
     [DebuggerDisplay("{" + nameof(DebugDisplay) + ",nq}")]
     public struct BitVector
     {
         /// <summary>
-        /// Количество бит в байте
+        /// Number of bits per byte
         /// </summary>
         private const int BitsPerByte = 8;
 
         /// <summary>
-        /// Количество бит на единицу хранения
+        /// Number of bits per storage unit
         /// </summary>
         private const int BitsPerStorage = sizeof(ulong) * BitsPerByte;
 
         /// <summary>
-        /// Массив для хранения битовых значений в упакованном виде
+        /// Array for storing bit values packed
         /// </summary>
         private readonly ulong[] _array;
 
         /// <summary>
-        /// Признак того, что все битовые значения в массиве установлены в 0
+        /// A sign that all bit values in the array are set to 0
         /// </summary>
         public bool IsFalseForAll => Array.TrueForAll(_array, item => item == 0UL);
 
         /// <summary>
-        /// Отображение в отладчике
+        /// Debugger Mapping
         /// </summary>
         public string DebugDisplay => _array == null ? "null" : Convert.ToString((long)_array[0], 2);
 
         /// <summary>
-        /// Инициализация нового экземпляра класса <see cref="BitVector" />
+        /// Initialize a new instance of the class. <see cref="BitVector" />
         /// </summary>
-        /// <param name="length">Максимальное количество обрабатываемых битов</param>
-        /// <param name="defaultValue">Устанавливаемое для всех битов значение по умолчанию</param>
+        /// <param name="length">Maximum number of processed bits</param>
+        /// <param name="defaultValue">Default value for all bits</param>
         public BitVector(int length, bool defaultValue = false)
         {
             _array = new ulong[GetArrayLength(length, BitsPerStorage)];
@@ -77,13 +77,12 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Инициализация нового экземпляра класса <see cref="BitVector" />.
+        /// Initialize a new instance of the class. <see cref="BitVector" />.
         /// </summary>
-        /// <param name="initValue">Значения для битов</param>
-        /// <param name="rotateBits">Перевернуть биты</param>
-        /// <remarks>(c) Oleg Krekov</remarks>
-        /// <remarks>Переворачивание битов не совсем честное, т.к. при завершении не выполняется смещение вправо,
-        /// таким образом, затрагиваются только то количетво бит, которое было заполнено, а с хвоста может оставаться "мусор"</remarks>
+        /// <param name="initValue">Values for bits</param>
+        /// <param name="rotateBits">Turn bits</param>
+        /// <remarks>Turning the bits is not entirely fair, because it does not shift to the right at completion,
+        /// in this way, only the number of the bit that was filled is affected, and “trash” can remain from the tail.</remarks>
         public unsafe BitVector(ulong initValue, bool rotateBits)
         {
             _array = new ulong[1];
@@ -105,10 +104,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Получение или установка значения бита по заданному индексу
+        /// Getting or setting the value of a bit at a given index
         /// </summary>
-        /// <param name="index">Индекс обрабатываемого бита</param>
-        /// <returns>Значение бита в указанной позиции</returns>
+        /// <param name="index">Processed bit index</param>
+        /// <returns>The value of the bit in the specified position</returns>
         public bool this[int index]
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -127,7 +126,7 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Сброс всех разрядов в 0
+        /// Reset all digits to 0
         /// </summary>
         public void Clear()
         {
@@ -135,9 +134,9 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Установка всех битов в заданное значение
+        /// Setting all bits to the specified value
         /// </summary>
-        /// <param name="value">Значение, в которое требуется установить все биты</param>
+        /// <param name="value">Value to set all bits to</param>
         public void SetAll(bool value)
         {
             ulong fillValue = value ? unchecked((ulong)-1) : 0UL;
@@ -149,13 +148,13 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Используется для вычисления необходимого размера массива для хранения <paramref name="n"/> значений при размерности хранения одного элемента в <paramref name="div"/>
+        /// Used to calculate the required size of the array for storage <paramref name="n"/> values when storing a single item in <paramref name="div"/>
         /// </summary>
-        /// <param name="n">Количество хранимых значений</param>
-        /// <param name="div">Вместимость одной единицы хранения</param>
-        /// <returns>Необходимый размер массива для хранения заданного количества элементов</returns>
+        /// <param name="n">Number of Stored Values</param>
+        /// <param name="div">Capacity of one storage unit</param>
+        /// <returns>The required size of the array to store a specified number of elements</returns>
         /// <remarks>
-        /// Реально вычисляется (n+(div-1))/div, но формула изменена на ((n-1)/div) + 1 чтобы избежать арифметического переполнения при вычислении
+        /// (N + (div-1)) / div is actually calculated, but the formula is changed to ((n-1) / div) + 1 to avoid arithmetic overflow when calculating
         /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         [Pure]
@@ -165,9 +164,9 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Инициализация состояния битовой маски из переданной маски
+        /// Initializing a bitmask state from a passed mask
         /// </summary>
-        /// <param name="mask">Маска используемая как источник состояния</param>
+        /// <param name="mask">Mask used as a source of state</param>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void CopyFrom(BitVector mask)
         {
@@ -175,10 +174,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Копировать данные в массив байт
+        /// Copy data to byte array
         /// </summary>
-        /// <param name="array">Принимаемый массив</param>
-        /// <param name="useMsb">Использовать MSB (https://en.wikipedia.org/wiki/Bit_numbering)</param>
+        /// <param name="array">Received array</param>
+        /// <param name="useMsb">Use MSB (https://en.wikipedia.org/wiki/Bit_numbering)</param>
         /// <remarks>(c) Oleg Krekov</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void CopyTo([NotNull] byte[] array, bool useMsb)
@@ -189,18 +188,18 @@ namespace Pdf417
 
             if (!useMsb) return;
 
-            // Переворачиваем биты в MSB
+            // Reverse bits in MSB
             for (var i = 0; i < array.Length; i++)
                 array[i] = (byte) ((array[i] * 0x0202020202UL & 0x010884422010UL) % 1023);
         }
 
         /// <summary>
-        /// Реализация оператора & (побитовое AND)
+        /// Implementing the & operator (bitwise AND)
         /// </summary>
-        /// <param name="lhs">Левый аргумент</param>
-        /// <param name="rhs">Правый аргумент</param>
+        /// <param name="lhs">Left argument</param>
+        /// <param name="rhs">Right argument</param>
         /// <returns>
-        /// Результат операции
+        /// Operation result
         /// </returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static BitVector operator &(BitVector lhs, BitVector rhs)

@@ -4,117 +4,117 @@ using System.Runtime.CompilerServices;
 namespace Pdf417
 {
     /// <summary>
-    /// Создание шитрихкода в формате PDF417
-    /// По описанию отсюда https://grandzebu.net/informatique/codbar-en/pdf417.htm
+    /// Create a bar code in pdf417 format
+    /// According to the description from here https://grandzebu.net/informatique/codbar-en/pdf417.htm
     /// https://github.com/harbour/core/blob/master/contrib/hbzebra/pdf417.c
     /// </summary>
     public struct Barcode
     {
         /// <summary>
-        /// Внутреннее пркдставление изображения
+        /// Internal image view
         /// </summary>
         public readonly MonoCanvas Canvas;
 
         /// <summary>
-        /// Количество строк штрих-кода
+        /// Number of lines barcode
         /// </summary>
         public int RowsCount => _rows;
 
         /// <summary>
-        /// Количество колонок в модулях
+        /// The number of columns in the modules
         /// </summary>
         public int ColumnsCount => (_dataColumns + 4) * 17 + 1;
 
         /// <summary>
-        /// Количество строк штрих-кода
+        /// Number of lines barcode
         /// </summary>
         private readonly int _rows;
 
         /// <summary>
-        /// Количество столбцов с данными
+        /// Number of data columns
         /// </summary>
         private readonly int _dataColumns;
 
         /// <summary>
-        /// Внутреннее представление данных штрих-кода в виде массива битовых векторов
+        /// Internal representation of barcode data as an array of bit vectors
         /// </summary>
         private readonly BitVector[] _internalData;
 
         /// <summary>
-        /// Настройки штрих-кода
+        /// Barcode settings
         /// </summary>
         private readonly Settings _settings;
 
         /// <summary>
-        /// Левый индикатор
+        /// Left indicator
         /// </summary>
         private readonly BitVector[] _leftIndicator;
 
         /// <summary>
-        /// Правый индикатор
+        /// Right indicator
         /// </summary>
         private readonly BitVector[] _rightIndicator;
 
         /// <summary>
-        /// Длина слова PDF417
+        /// PDF417 word length
         /// </summary>
         private const int WordLen = 17;
 
         /// <summary>
-        /// Максимальное количество кодовых слов, умещаемое в штрих-коде
+        /// Maximum number of code words to fit in the barcode
         /// </summary>
         private const int MaxCodeWords = 925;
 
         /// <summary>
-        /// Битовое представление Start Pattern
+        /// Bit Pattern - Start Pattern
         /// </summary>
         private static readonly BitVector StartPattern = new BitVector(0b11111111010101000UL, true);
 
         /// <summary>
-        /// Битовое представление Stop Pattern
+        /// Bit representation - Stop Pattern
         /// </summary>
         private static readonly BitVector StopPattern = new BitVector(0b11111110100010100UL, true);
 
         /// <summary>
-        /// Создает новый экземпляр <see cref="Barcode"/>, с данными из массива байт
+        /// Creates a new instance <see cref="Barcode"/>, with data from the byte array
         /// </summary>
-        /// <param name="input">Данные для кодировки в штрих-коде</param>
-        /// <param name="settings">Настройки  штрих-кода</param>
+        /// <param name="input">Barcode encoding data</param>
+        /// <param name="settings">Barcode settings</param>
         public Barcode(byte[] input, Settings settings) : this()
         {
             _settings = settings;
 
-            // Получаем массив кодовых слов из входных данных
+            // We get an array of code words from the input
             (var data, int rdl) = GetDataFromBytes(input);
 
-            // Определяем уровень коррекции ошибок, если он не задан
+            // Determine the level of error correction, if it is not specified
             _settings.CorrectionLevel  = DetermineCorrectionLevel(settings.CorrectionLevel, rdl);
 
-            // Сумммарное количество значимых кодовых слов
-            // Длина + данные + коррекции
+            // The total number of significant code words
+            // Length + Data + Corrections
             int cl = 2 << (int) _settings.CorrectionLevel;
             int cwCount = 1 + rdl + cl;
 
-            // Создаем хранилище кодовых слов
+            // Create a code word store
             (_rows, _dataColumns, _internalData) = CreateDataStorage(cwCount, settings.AspectRatio);
 
-            // Заполняем индикаторы
+            // Fill in the indicators
             _leftIndicator = new BitVector[_rows];
             _rightIndicator = new BitVector[_rows];
             FillIndicators();
 
-            // Длина блока данных
+            // Data block length
             data[0] = _internalData.Length - cl;
 
-            // Заполняем пустоты
+            // Fill the Void
             for (int i = rdl; i < data[0]; i++)
                 data[i] = 900;
 
-            // Данные
+            // Data
             for (int i = 0; i < data[0]; i++)
                 _internalData[i] = new BitVector(Tables.LowLevel[(i / _dataColumns) % 3][data[i]], true);
 
-            // Коррекция ошибок
+            // Error correction
             var corrections = GetReedSolomonCorrections(data, data[0]);
             Array.Copy(corrections, 0, _internalData, data[0], corrections.Length);
 
@@ -122,45 +122,45 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Создает новый экземпляр <see cref="Barcode"/>, с данными из строки
+        /// Creates a new instance <see cref="Barcode"/>, with data from the string
         /// </summary>
-        /// <param name="input">Данные для кодировки в штрих-коде</param>
-        /// <param name="settings">Настройки  штрих-кода</param>
+        /// <param name="input">Barcode encoding data</param>
+        /// <param name="settings">Barcode settings</param>
         public Barcode(string input, Settings settings) : this()
         {
             _settings = settings;
 
-            // Получаем массив кодовых слов из входных данных
+            // We get an array of code words from the input
             (var data, int rdl) = GetDataFromText(input);
 
-            // Определяем уровень коррекции ошибок, если он не задан
+            // Determine the level of error correction, if it is not specified
             _settings.CorrectionLevel  = DetermineCorrectionLevel(settings.CorrectionLevel, rdl);
 
-            // Сумммарное количество значимых кодовых слов
-            // Длина + данные + коррекции
+            // The total number of significant code words
+            // Length + Data + Corrections
             int cl = 2 << (int) _settings.CorrectionLevel;
             int cwCount = 1 + rdl + cl;
 
-            // Создаем хранилище кодовых слов
+            // Create a code word store
             (_rows, _dataColumns, _internalData) = CreateDataStorage(cwCount, settings.AspectRatio);
 
-            // Заполняем индикаторы
+            // Fill in the indicators
             _leftIndicator = new BitVector[_rows];
             _rightIndicator = new BitVector[_rows];
             FillIndicators();
 
-            // Длина блока данных
+            // Length of data block
             data[0] = _internalData.Length - cl;
 
-            // Заполняем пустоты
+            // Fill the Void
             for (int i = rdl; i < data[0]; i++)
                 data[i] = 900;
 
-            // Данные
+            // Data
             for (int i = 0; i < data[0]; i++)
                 _internalData[i] = new BitVector(Tables.LowLevel[(i / _dataColumns) % 3][data[i]], true);
 
-            // Коррекция ошибок
+            // Error correction
             var corrections = GetReedSolomonCorrections(data, data[0]);
             Array.Copy(corrections, 0, _internalData, data[0], corrections.Length);
 
@@ -168,10 +168,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Заполнить <see cref="_internalData"/> байтами
+        /// Fill <see cref="_internalData"/> bytes
         /// </summary>
-        /// <param name="input">Данные в виде массива байт</param>
-        /// <returns>Данные в виде массива кодовых слов, и реальная длина данных</returns>
+        /// <param name="input">Data in the form of an array of bytes</param>
+        /// <returns>Data in the form of an array of code words, and the actual data length</returns>
         private (int[], int) GetDataFromBytes(byte[] input)
         {
             int len = input.Length;
@@ -202,10 +202,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Получить данные из текста
+        /// Get data from text
         /// </summary>
-        /// <param name="input">Данные в виде ASCII строки</param>
-        /// <returns>Данные в виде массива кодовых слов, и реальная длина данных</returns>
+        /// <param name="input">ASCII string data</param>
+        /// <returns>Data in the form of an array of code words, and the actual data length</returns>
         private (int[], int) GetDataFromText(string input)
         {
             const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
@@ -217,8 +217,8 @@ namespace Pdf417
             const int /*mtpl = 25,*/ mtll = 27, mtul = 28, mtps = 29;
             //const int ptul = 29;
 
-            char mode = 'u'; // Текущий режим { u | l | m | p }
-            // Выделяем буфер для формирования предварительных данных размером 8+input.Length
+            char mode = 'u'; // Current mode{ u | l | m | p }
+            // Allocate a buffer for the formation of preliminary data of size 8 + input.Length
             int[] pre = new int[input.Length + 8];
             int pos = 1, cur = 0, pp = 0;
 
@@ -364,20 +364,20 @@ namespace Pdf417
             return (pre, pos);
         }
 
-//        /// <summary>
-//        /// Заполнить <see cref="_internalData"/> цифрами
-//        /// </summary>
-//        /// <param name="input">Данные в виде строки с десятичным числом</param>
-//        private void FillDataNumeric(byte[] input)
-//        {
-//            throw new NotImplementedException();
-//        }
+        //        /// <summary>
+        //        /// Fill <see cref="_internalData"/> in numbers
+        //        /// </summary>
+        //        /// <param name="input">Data as a string with a decimal number</param>
+        //        private void FillDataNumeric(byte[] input)
+        //        {
+        //            throw new NotImplementedException();
+        //        }
 
         /// <summary>
-        /// Заполнение кодов Рида-Соломона (масив будет перевернут)
+        /// Filling the Reed-Solomon codes (the array will be flipped)
         /// </summary>
-        /// <param name="data">Массив данных</param>
-        /// <param name="length">Длина блока данных</param>
+        /// <param name="data">Data array</param>
+        /// <param name="length">Data block length</param>
         private BitVector[] GetReedSolomonCorrections(int[] data, int length)
         {
             const int module = 929;
@@ -406,7 +406,7 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Заполнить индикаторы
+        /// Fill indicators
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void FillIndicators()
@@ -425,7 +425,7 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Зполнить полотно для рисования изображением штрих-кода PDF417
+        /// Fill canvas for drawing with PDF417 barcode image
         /// </summary>
         private MonoCanvas FillCanvas()
         {
@@ -470,10 +470,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Определяет уровень коррекции ошибок
+        /// Determines the level of error correction
         /// </summary>
-        /// <param name="correctionLevel">Установленный уровень коррекции</param>
-        /// <param name="cwDataCount">Количество кодовых слов с данными</param>
+        /// <param name="correctionLevel">Set Correction Level</param>
+        /// <param name="cwDataCount">Number of code words with data</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static CorrectionLevel DetermineCorrectionLevel(CorrectionLevel correctionLevel, int cwDataCount)
@@ -513,22 +513,22 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Создать двумерный массив с кодовыми словами на основании размера
+        /// Create a two-dimensional array with code words based on size
         /// </summary>
-        /// <param name="cwCount">Количество кодовых слов</param>
-        /// <param name="aspectRatio">Отношение ширины к высоте</param>
-        /// <returns>Пустой массив для хранения данных и его размеры</returns>
+        /// <param name="cwCount">Number of code words</param>
+        /// <param name="aspectRatio">The ratio of width to height</param>
+        /// <returns>Empty array for storing data and its size</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private (int rows, int dataColumns, BitVector[] data) CreateDataStorage(int cwCount, double aspectRatio)
         {
             if (cwCount > MaxCodeWords)
                 throw new ArgumentException($"Codewords count {cwCount} more than maximum {MaxCodeWords}");
 
-            // Расчет количества строк и столбцов
-            // Ширина = 1 + 17 * (4 + dataColumns(x)) модулей, Высота = rows(y) * _yHeight(h) модулей
-            // x * y = c, где cwCount <= c < cwCount+x  =>  y = (c/x) * aspectRatio(a)
-            // 69 + 17x = ahc/x  =>  17x^2 + 69x - ahc = 0  =>
-            // x = (sqrt(4761 + 68ahc)-69)/(2*17) - количество столбцов с данными
+            // Calculate the number of rows and columns
+            // Width = 1 + 17 * (4 + dataColumns (x)) of modules, Height = rows (y) * _yHeight (h) of modules
+            // x * y = c, where cwCount <= c <cwCount + x => y = (c / x) * aspectRatio (a)
+            // 69 + 17x = ahc / x => 17x ^ 2 + 69x - ahc = 0 =>
+            // x = (sqrt (4761 + 68ahc) -69) / (2 * 17) - the number of columns with data
 
             int x = (int) Math.Ceiling((Math.Sqrt(4761d + 68 * aspectRatio * _settings.YHeight * cwCount) - 69) / 34);
             int y = cwCount / x + (cwCount % x == 0 ? 0 : 1);
@@ -537,10 +537,10 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Быстрое целочисленное возведение в степень
+        /// Fast integer exponentiation
         /// </summary>
-        /// <param name="n">Число, которое необходимо возвести в степень</param>
-        /// <param name="e">Степень</param>
+        /// <param name="n">The number to be raised to a power</param>
+        /// <param name="e">Power</param>
         /// <remarks>https://ru.wikibooks.org/wiki/Реализации_алгоритмов/Быстрое_возведение_в_степень</remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private ulong Pow(ulong n, uint e)
@@ -557,7 +557,7 @@ namespace Pdf417
         }
 
         /// <summary>
-        /// Получить таблицу с решениями полинома для кодов Рида-Соломона для нашего случая
+        /// Get a table with polynomial solutions for Reed-Solomon codes for our case
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"></exception>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
